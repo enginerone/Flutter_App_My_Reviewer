@@ -1,0 +1,96 @@
+﻿Analyzing Reviewer...                                           
+
+warning - The value of the field '_topics' isn't used - lib\screens\admin\add_question_screen.dart:28:28 - unused_field
+warning - The value of the field '_loadingTopics' isn't used - lib\screens\admin\add_question_screen.dart:30:8 - unused_field
+   info - Use 'const' with the constructor to improve performance - lib\screens\auth\login_screen.dart:94:24 - prefer_const_constructors
+   info - Use 'const' literals as arguments to constructors of '@immutable' classes - lib\screens\auth\login_screen.dart:95:29 - prefer_const_literals_to_create_immutables
+warning - Unused import: '../auth/login_screen.dart' - lib\screens\user\subject_list_screen.dart:8:8 - unused_import
+warning - Unused import: 'question_screen.dart' - lib\screens\user\subject_list_screen.dart:9:8 - unused_import
+  error - Missing concrete implementation of 'State.build' - lib\screens\user\subject_list_screen.dart:19:7 - non_abstract_class_inherits_abstract_member
+warning - The value of the field '_subjects' isn't used - lib\screens\user\subject_list_screen.dart:22:22 - unused_field
+warning - The value of the field '_questionCounts' isn't used - lib\screens\user\subject_list_screen.dart:23:17 - unused_field
+   info - The private field _activeSessions could be 'final' - lib\screens\user\subject_list_screen.dart:24:31 - prefer_final_fields
+warning - The value of the field '_activeSessions' isn't used - lib\screens\user\subject_list_screen.dart:24:31 - unused_field
+   info - The private field _isLoading could be 'final' - lib\screens\user\subject_list_screen.dart:25:8 - prefer_final_fields
+warning - The value of the field '_isLoading' isn't used - lib\screens\user\subject_list_screen.dart:25:8 - unused_field
+   info - The local variable '_activeSessions' starts with an underscore - lib\screens\user\subject_list_screen.dart:30:31 - no_leading_underscores_for_local_identifiers
+warning - The value of the local variable '_activeSessions' isn't used - lib\screens\user\subject_list_screen.dart:30:31 - unused_local_variable
+   info - The local variable '_isLoading' starts with an underscore - lib\screens\user\subject_list_screen.dart:31:8 - no_leading_underscores_for_local_identifiers
+warning - The value of the local variable '_isLoading' isn't used - lib\screens\user\subject_list_screen.dart:31:8 - unused_local_variable
+   info - The declaration 'initState' isn't referenced - lib\screens\user\subject_list_screen.dart:34:8 - unused_element
+  error - Local variable '_loadSubjects' can't be referenced before it is declared - lib\screens\user\subject_list_screen.dart:36:5 - referenced_before_declaration
+   info - The local variable '_loadSubjects' starts with an underscore - lib\screens\user\subject_list_screen.dart:39:16 - no_leading_underscores_for_local_identifiers
+   info - The declaration '_handleSubjectTap' isn't referenced - lib\screens\user\subject_list_screen.dart:59:8 - unused_element
+   info - The local variable '_handleSubjectTap' starts with an underscore - lib\screens\user\subject_list_screen.dart:59:8 - no_leading_underscores_for_local_identifiers
+  error - The method '_startQuiz' isn't defined for the type '_SubjectListScreenState' - lib\screens\user\subject_list_screen.dart:97:9 - undefined_method
+  error - The method '_startQuiz' isn't defined for the type '_SubjectListScreenState' - lib\screens\user\subject_list_screen.dart:99:9 - undefined_method
+  error - The method '_startQuiz' isn't defined for the type '_SubjectListScreenState' - lib\screens\user\subject_list_screen.dart:102:7 - undefined_method
+  error - Expected to find ';' - lib\screens\user\subject_list_screen.dart:106:41 - expected_token
+  error - Undefined name 'color' - lib\screens\user\subject_list_screen.dart:106:41 - undefined_identifier
+  error - Expected an identifier - lib\screens\user\subject_list_screen.dart:106:46 - missing_identifier
+  error - Unexpected text ';' - lib\screens\user\subject_list_screen.dart:106:46 - unexpected_token
+  error - Undefined name 'color' - lib\screens\user\subject_list_screen.dart:107:41 - undefined_identifier
+  error - Expected to find ';' - lib\screens\user\subject_list_screen.dart:107:60 - expected_token
+  error - Expected an identifier - lib\screens\user\subject_list_screen.dart:107:61 - missing_identifier
+  error - Expected to find ';' - lib\screens\user\subject_list_screen.dart:107:61 - expected_token
+  error - Unexpected text ';' - lib\screens\user\subject_list_screen.dart:107:61 - unexpected_token
+  error - Expected an identifier - lib\screens\user\subject_list_screen.dart:108:39 - missing_identifier
+  error - Expected to find ';' - lib\screens\user\subject_list_screen.dart:108:39 - expected_token
+  error - Unexpected text ';' - lib\screens\user\subject_list_screen.dart:108:39 - unexpected_token
+  error - Expected an identifier - lib\screens\user\subject_list_screen.dart:108:40 - missing_identifier
+  error - Expected to find ';' - lib\screens\user\subject_list_screen.dart:108:40 - expected_token
+  error - Unexpected text ';' - lib\screens\user\subject_list_screen.dart:108:40 - unexpected_token
+  error - Expected an identifier - lib\screens\user\subject_list_screen.dart:109:37 - missing_identifier
+  error - Expected to find ';' - lib\screens\user\subject_list_screen.dart:109:37 - expected_token
+  error - Unexpected text ';' - lib\screens\user\subject_list_screen.dart:109:37 - unexpected_token
+  error - Expected an identifier - lib\screens\user\subject_list_screen.dart:109:38 - missing_identifier
+  error - Unexpected text ';' - lib\screens\user\subject_list_screen.dart:109:38 - unexpected_token
+warning - The label 'borderRadius' isn't used - lib\screens\user\subject_list_screen.dart:110:37 - unused_label
+  error - Expected to find ';' - lib\screens\user\subject_list_screen.dart:111:65 - expected_token
+  error - Expected an identifier - lib\screens\user\subject_list_screen.dart:111:66 - missing_identifier
+  error - Unexpected text ';' - lib\screens\user\subject_list_screen.dart:111:66 - unexpected_token
+warning - The label 'boxShadow' isn't used - lib\screens\user\subject_list_screen.dart:112:37 - unused_label
+  error - Undefined name 'color' - lib\screens\user\subject_list_screen.dart:114:48 - undefined_identifier
+  error - Expected to find ';' - lib\screens\user\subject_list_screen.dart:118:37 - expected_token
+  error - Expected an identifier - lib\screens\user\subject_list_screen.dart:118:38 - missing_identifier
+  error - Expected to find ';' - lib\screens\user\subject_list_screen.dart:118:38 - expected_token
+  error - Unexpected text ';' - lib\screens\user\subject_list_screen.dart:118:38 - unexpected_token
+  error - Expected an identifier - lib\screens\user\subject_list_screen.dart:119:35 - missing_identifier
+  error - Expected to find ';' - lib\screens\user\subject_list_screen.dart:119:35 - expected_token
+  error - Unexpected text ';' - lib\screens\user\subject_list_screen.dart:119:35 - unexpected_token
+  error - Expected an identifier - lib\screens\user\subject_list_screen.dart:119:36 - missing_identifier
+  error - Unexpected text ';' - lib\screens\user\subject_list_screen.dart:119:36 - unexpected_token
+warning - The label 'child' isn't used - lib\screens\user\subject_list_screen.dart:120:35 - unused_label
+  error - Undefined name 'subject' - lib\screens\user\subject_list_screen.dart:147:47 - undefined_identifier
+  error - Undefined name 'count' - lib\screens\user\subject_list_screen.dart:157:49 - undefined_identifier
+  error - Undefined name 'count' - lib\screens\user\subject_list_screen.dart:157:65 - undefined_identifier
+  error - Expected to find ';' - lib\screens\user\subject_list_screen.dart:168:35 - expected_token
+  error - Expected an identifier - lib\screens\user\subject_list_screen.dart:168:36 - missing_identifier
+  error - Expected to find ';' - lib\screens\user\subject_list_screen.dart:168:36 - expected_token
+  error - Unexpected text ';' - lib\screens\user\subject_list_screen.dart:168:36 - unexpected_token
+  error - Expected an identifier - lib\screens\user\subject_list_screen.dart:169:33 - missing_identifier
+  error - Expected to find ';' - lib\screens\user\subject_list_screen.dart:169:33 - expected_token
+  error - Unexpected text ';' - lib\screens\user\subject_list_screen.dart:169:33 - unexpected_token
+  error - Expected an identifier - lib\screens\user\subject_list_screen.dart:169:34 - missing_identifier
+  error - Expected to find ';' - lib\screens\user\subject_list_screen.dart:169:34 - expected_token
+  error - Unexpected text ';' - lib\screens\user\subject_list_screen.dart:169:34 - unexpected_token
+  error - Expected an identifier - lib\screens\user\subject_list_screen.dart:170:31 - missing_identifier
+  error - Unexpected text ';' - lib\screens\user\subject_list_screen.dart:170:31 - unexpected_token
+   info - Unnecessary empty statement - lib\screens\user\subject_list_screen.dart:170:32 - empty_statements
+  error - Expected a class member - lib\screens\user\subject_list_screen.dart:171:30 - expected_class_member
+  error - Expected a class member - lib\screens\user\subject_list_screen.dart:172:27 - expected_class_member
+  error - Expected a class member - lib\screens\user\subject_list_screen.dart:172:28 - expected_class_member
+  error - Expected a class member - lib\screens\user\subject_list_screen.dart:173:25 - expected_class_member
+  error - Expected a class member - lib\screens\user\subject_list_screen.dart:173:26 - expected_class_member
+  error - Expected a class member - lib\screens\user\subject_list_screen.dart:174:13 - expected_class_member
+  error - Expected a class member - lib\screens\user\subject_list_screen.dart:174:14 - expected_class_member
+  error - Expected a class member - lib\screens\user\subject_list_screen.dart:175:11 - expected_class_member
+  error - Expected a class member - lib\screens\user\subject_list_screen.dart:175:12 - expected_class_member
+  error - Expected a class member - lib\screens\user\subject_list_screen.dart:176:9 - expected_class_member
+  error - Expected a class member - lib\screens\user\subject_list_screen.dart:176:10 - expected_class_member
+  error - Expected a class member - lib\screens\user\subject_list_screen.dart:177:7 - expected_class_member
+  error - Expected a class member - lib\screens\user\subject_list_screen.dart:177:8 - expected_class_member
+  error - Expected a class member - lib\screens\user\subject_list_screen.dart:178:5 - expected_class_member
+  error - Expected a class member - lib\screens\user\subject_list_screen.dart:178:6 - expected_class_member
+  error - Expected a method, getter, setter or operator declaration - lib\screens\user\subject_list_screen.dart:180:1 - expected_executable
+
