@@ -23,7 +23,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 2,
+      version: 3,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -58,6 +58,8 @@ class DatabaseHelper {
         topic_id INTEGER,
         meaning TEXT NOT NULL,
         correct_term TEXT NOT NULL,
+        answer_type TEXT NOT NULL DEFAULT 'identification',
+        choices TEXT NOT NULL DEFAULT '[]',
         FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE CASCADE,
         FOREIGN KEY (topic_id) REFERENCES category_topics(id) ON DELETE SET NULL
       )
@@ -146,6 +148,14 @@ class DatabaseHelper {
       await db.execute('''
         ALTER TABLE questions ADD COLUMN topic_id INTEGER REFERENCES category_topics(id) ON DELETE SET NULL
       ''');
+    }
+    if (oldVersion < 3) {
+      await db.execute(
+        "ALTER TABLE questions ADD COLUMN answer_type TEXT NOT NULL DEFAULT 'identification'",
+      );
+      await db.execute(
+        "ALTER TABLE questions ADD COLUMN choices TEXT NOT NULL DEFAULT '[]'",
+      );
     }
   }
 

@@ -13,6 +13,9 @@ class QuestionCard extends StatefulWidget {
   final bool canGoBack;
   final String? topicName;
   final String clue;
+  // Answer type
+  final String answerType; // 'identification' | 'multiple_choice'
+  final List<String> shuffledChoices; // already shuffled by parent, includes correct
 
   const QuestionCard({
     super.key,
@@ -27,6 +30,8 @@ class QuestionCard extends StatefulWidget {
     this.canGoBack = false,
     this.topicName,
     this.isLoading = false,
+    this.answerType = 'identification',
+    this.shuffledChoices = const [],
   });
 
   @override
@@ -35,15 +40,26 @@ class QuestionCard extends StatefulWidget {
 
 class _QuestionCardState extends State<QuestionCard> {
   bool _clueVisible = true;
+  String? _selectedChoice;
 
-  // Reset clue visibility whenever the question changes
   @override
   void didUpdateWidget(QuestionCard oldWidget) {
     super.didUpdateWidget(oldWidget);
+    // Reset MC selection when the question changes
     if (oldWidget.questionNumber != widget.questionNumber) {
-      setState(() => _clueVisible = true);
+      setState(() => _selectedChoice = null);
     }
   }
+
+  void _selectChoice(String choice) {
+    if (widget.isLoading) return;
+    setState(() => _selectedChoice = choice);
+    // Pipe the choice into the shared controller so _submitAnswer works unchanged
+    widget.answerController.text = choice;
+    widget.onSubmit();
+  }
+
+  bool get _isMC => widget.answerType == 'multiple_choice';
 
   @override
   Widget build(BuildContext context) {
@@ -57,7 +73,7 @@ class _QuestionCardState extends State<QuestionCard> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Progress indicator
+            // ── Progress ──────────────────────────────────────────────
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -70,23 +86,67 @@ class _QuestionCardState extends State<QuestionCard> {
                     letterSpacing: 0.5,
                   ),
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppConstants.paddingSmall,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppConstants.primaryColor.withAlpha(20),
-                    borderRadius: BorderRadius.circular(AppConstants.radiusSmall),
-                  ),
-                  child: Text(
-                    '${widget.questionNumber}/${widget.totalQuestions}',
-                    style: const TextStyle(
-                      fontSize: AppConstants.fontSmall,
-                      fontWeight: FontWeight.bold,
-                      color: AppConstants.primaryColor,
+                Row(
+                  children: [
+                    // Answer type chip
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: _isMC
+                            ? AppConstants.accentColor.withAlpha(25)
+                            : AppConstants.successColor.withAlpha(20),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: _isMC
+                              ? AppConstants.accentColor.withAlpha(80)
+                              : AppConstants.successColor.withAlpha(60),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            _isMC ? Icons.list_alt_rounded : Icons.edit_outlined,
+                            size: 11,
+                            color: _isMC
+                                ? AppConstants.accentColor
+                                : AppConstants.successColor,
+                          ),
+                          const SizedBox(width: 3),
+                          Text(
+                            _isMC ? 'MC' : 'ID',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: _isMC
+                                  ? AppConstants.accentColor
+                                  : AppConstants.successColor,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppConstants.paddingSmall,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppConstants.primaryColor.withAlpha(20),
+                        borderRadius:
+                            BorderRadius.circular(AppConstants.radiusSmall),
+                      ),
+                      child: Text(
+                        '${widget.questionNumber}/${widget.totalQuestions}',
+                        style: const TextStyle(
+                          fontSize: AppConstants.fontSmall,
+                          fontWeight: FontWeight.bold,
+                          color: AppConstants.primaryColor,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -104,7 +164,7 @@ class _QuestionCardState extends State<QuestionCard> {
             ),
             const SizedBox(height: AppConstants.paddingLarge),
 
-            // Meaning section label
+            // ── Meaning ───────────────────────────────────────────────
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -119,16 +179,19 @@ class _QuestionCardState extends State<QuestionCard> {
                 ),
                 if (widget.topicName != null && widget.topicName!.isNotEmpty)
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
                       color: AppConstants.accentColor.withAlpha(20),
                       borderRadius: BorderRadius.circular(4),
-                      border: Border.all(color: AppConstants.accentColor.withAlpha(50)),
+                      border: Border.all(
+                          color: AppConstants.accentColor.withAlpha(50)),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.category_outlined, size: 14, color: AppConstants.accentColor),
+                        const Icon(Icons.category_outlined,
+                            size: 14, color: AppConstants.accentColor),
                         const SizedBox(width: 4),
                         Text(
                           widget.topicName!,
@@ -144,14 +207,13 @@ class _QuestionCardState extends State<QuestionCard> {
               ],
             ),
             const SizedBox(height: AppConstants.paddingSmall),
-
-            // Meaning text
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(AppConstants.paddingMedium),
               decoration: BoxDecoration(
                 color: AppConstants.backgroundColor,
-                borderRadius: BorderRadius.circular(AppConstants.radiusMedium),
+                borderRadius:
+                    BorderRadius.circular(AppConstants.radiusMedium),
                 border: Border.all(color: AppConstants.dividerColor),
               ),
               child: Text(
@@ -166,158 +228,281 @@ class _QuestionCardState extends State<QuestionCard> {
             ),
             const SizedBox(height: AppConstants.paddingLarge),
 
-            // Answer label
-            const Text(
-              'YOUR ANSWER',
-              style: TextStyle(
-                fontSize: AppConstants.fontSmall,
-                fontWeight: FontWeight.w700,
-                color: AppConstants.accentColor,
-                letterSpacing: 1.5,
+            // ── Answer section ────────────────────────────────────────
+            if (_isMC) ...[
+              const Text(
+                'SELECT YOUR ANSWER',
+                style: TextStyle(
+                  fontSize: AppConstants.fontSmall,
+                  fontWeight: FontWeight.w700,
+                  color: AppConstants.accentColor,
+                  letterSpacing: 1.5,
+                ),
               ),
-            ),
-            const SizedBox(height: AppConstants.paddingSmall),
-
-            // Clue display with toggle
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              margin: const EdgeInsets.only(bottom: AppConstants.paddingMedium),
-              decoration: BoxDecoration(
-                color: AppConstants.primaryColor.withAlpha(15),
-                borderRadius: BorderRadius.circular(AppConstants.radiusMedium),
-                border: Border.all(color: AppConstants.primaryColor.withAlpha(50)),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.lightbulb_outline, size: 20, color: AppConstants.primaryColor),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: _clueVisible
-                        ? Text(
-                            'Clue: ${widget.clue}',
-                            style: const TextStyle(
-                              fontSize: AppConstants.fontBody,
-                              fontWeight: FontWeight.w600,
-                              color: AppConstants.primaryColor,
-                              letterSpacing: 2.0,
-                            ),
-                          )
-                        : const Text(
-                            'Clue hidden',
-                            style: TextStyle(
-                              fontSize: AppConstants.fontBody,
-                              fontStyle: FontStyle.italic,
-                              color: AppConstants.textSecondary,
-                            ),
-                          ),
-                  ),
-                  // Toggle clue visibility button
-                  Tooltip(
-                    message: _clueVisible ? 'Hide clue' : 'Show clue',
-                    child: IconButton(
-                      icon: Icon(
-                        _clueVisible ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                        size: 20,
-                        color: AppConstants.primaryColor,
+              const SizedBox(height: AppConstants.paddingSmall),
+              // Choice buttons
+              ...widget.shuffledChoices.asMap().entries.map((entry) {
+                final idx = entry.key;
+                final choice = entry.value;
+                final isSelected = choice == _selectedChoice;
+                final letter =
+                    String.fromCharCode(65 + idx); // A, B, C, D
+                return Padding(
+                  padding: const EdgeInsets.only(
+                      bottom: AppConstants.paddingSmall),
+                  child: GestureDetector(
+                    onTap: widget.isLoading
+                        ? null
+                        : () => _selectChoice(choice),
+                    child: AnimatedContainer(
+                      duration: AppConstants.animFast,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 14),
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? AppConstants.primaryColor
+                            : AppConstants.backgroundColor,
+                        borderRadius: BorderRadius.circular(
+                            AppConstants.radiusMedium),
+                        border: Border.all(
+                          color: isSelected
+                              ? AppConstants.primaryColor
+                              : AppConstants.dividerColor,
+                          width: isSelected ? 2 : 1,
+                        ),
+                        boxShadow: isSelected
+                            ? [
+                                BoxShadow(
+                                  color: AppConstants.primaryColor
+                                      .withAlpha(50),
+                                  blurRadius: 6,
+                                  offset: const Offset(0, 2),
+                                )
+                              ]
+                            : null,
                       ),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                      onPressed: () => setState(() => _clueVisible = !_clueVisible),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // Text Input
-            TextField(
-              controller: widget.answerController,
-              textCapitalization: TextCapitalization.words,
-              decoration: InputDecoration(
-                hintText: 'Type the correct term...',
-                hintStyle: const TextStyle(color: AppConstants.textSecondary),
-                filled: true,
-                fillColor: AppConstants.backgroundColor,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppConstants.radiusMedium),
-                  borderSide: const BorderSide(color: AppConstants.dividerColor),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppConstants.radiusMedium),
-                  borderSide: const BorderSide(color: AppConstants.dividerColor),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppConstants.radiusMedium),
-                  borderSide: const BorderSide(
-                    color: AppConstants.primaryColor,
-                    width: 1.5,
-                  ),
-                ),
-                suffixIcon: widget.answerController.text.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear, color: AppConstants.textSecondary),
-                        onPressed: () => widget.answerController.clear(),
-                      )
-                    : null,
-              ),
-              onSubmitted: (_) => widget.onSubmit(),
-            ),
-            const SizedBox(height: AppConstants.paddingLarge),
-
-            // Submit button
-            SizedBox(
-              width: double.infinity,
-              height: 52,
-              child: ElevatedButton(
-                onPressed: widget.isLoading ? null : widget.onSubmit,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppConstants.primaryColor,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(AppConstants.radiusMedium),
-                  ),
-                ),
-                child: widget.isLoading
-                    ? const CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
-                    : const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                      child: Row(
                         children: [
-                          Text(
-                            'Submit Answer',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: AppConstants.fontBody,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 0.5,
+                          Container(
+                            width: 28,
+                            height: 28,
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? Colors.white.withAlpha(40)
+                                  : AppConstants.primaryColor
+                                      .withAlpha(20),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Center(
+                              child: Text(
+                                letter,
+                                style: TextStyle(
+                                  fontSize: AppConstants.fontSmall,
+                                  fontWeight: FontWeight.bold,
+                                  color: isSelected
+                                      ? Colors.white
+                                      : AppConstants.primaryColor,
+                                ),
+                              ),
                             ),
                           ),
-                          SizedBox(width: 8),
-                          Icon(Icons.check_circle_outline, color: Colors.white, size: 18),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              choice,
+                              style: TextStyle(
+                                fontSize: AppConstants.fontBody,
+                                fontWeight: FontWeight.w500,
+                                color: isSelected
+                                    ? Colors.white
+                                    : AppConstants.textPrimary,
+                              ),
+                            ),
+                          ),
+                          if (isSelected)
+                            const Icon(Icons.check_circle_rounded,
+                                color: Colors.white, size: 20),
                         ],
                       ),
+                    ),
+                  ),
+                );
+              }),
+            ] else ...[
+              // ── Identification mode ─────────────────────────────────
+              const Text(
+                'YOUR ANSWER',
+                style: TextStyle(
+                  fontSize: AppConstants.fontSmall,
+                  fontWeight: FontWeight.w700,
+                  color: AppConstants.accentColor,
+                  letterSpacing: 1.5,
+                ),
               ),
-            ),
+              const SizedBox(height: AppConstants.paddingSmall),
+
+              // Clue with toggle
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                margin: const EdgeInsets.only(
+                    bottom: AppConstants.paddingMedium),
+                decoration: BoxDecoration(
+                  color: AppConstants.primaryColor.withAlpha(15),
+                  borderRadius:
+                      BorderRadius.circular(AppConstants.radiusMedium),
+                  border: Border.all(
+                      color: AppConstants.primaryColor.withAlpha(50)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.lightbulb_outline,
+                        size: 20, color: AppConstants.primaryColor),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _clueVisible
+                          ? Text(
+                              'Clue: ${widget.clue}',
+                              style: const TextStyle(
+                                fontSize: AppConstants.fontBody,
+                                fontWeight: FontWeight.w600,
+                                color: AppConstants.primaryColor,
+                                letterSpacing: 2.0,
+                              ),
+                            )
+                          : const Text(
+                              'Clue hidden',
+                              style: TextStyle(
+                                fontSize: AppConstants.fontBody,
+                                fontStyle: FontStyle.italic,
+                                color: AppConstants.textSecondary,
+                              ),
+                            ),
+                    ),
+                    Tooltip(
+                      message: _clueVisible ? 'Hide clue' : 'Show clue',
+                      child: IconButton(
+                        icon: Icon(
+                          _clueVisible
+                              ? Icons.visibility_off_outlined
+                              : Icons.visibility_outlined,
+                          size: 20,
+                          color: AppConstants.primaryColor,
+                        ),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        onPressed: () =>
+                            setState(() => _clueVisible = !_clueVisible),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Text field
+              TextField(
+                controller: widget.answerController,
+                textCapitalization: TextCapitalization.words,
+                decoration: InputDecoration(
+                  hintText: 'Type the correct term...',
+                  hintStyle:
+                      const TextStyle(color: AppConstants.textSecondary),
+                  filled: true,
+                  fillColor: AppConstants.backgroundColor,
+                  border: OutlineInputBorder(
+                    borderRadius:
+                        BorderRadius.circular(AppConstants.radiusMedium),
+                    borderSide:
+                        const BorderSide(color: AppConstants.dividerColor),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius:
+                        BorderRadius.circular(AppConstants.radiusMedium),
+                    borderSide:
+                        const BorderSide(color: AppConstants.dividerColor),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius:
+                        BorderRadius.circular(AppConstants.radiusMedium),
+                    borderSide: const BorderSide(
+                      color: AppConstants.primaryColor,
+                      width: 1.5,
+                    ),
+                  ),
+                  suffixIcon: widget.answerController.text.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear,
+                              color: AppConstants.textSecondary),
+                          onPressed: () => widget.answerController.clear(),
+                        )
+                      : null,
+                ),
+                onSubmitted: (_) => widget.onSubmit(),
+              ),
+              const SizedBox(height: AppConstants.paddingLarge),
+
+              // Submit button
+              SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: ElevatedButton(
+                  onPressed: widget.isLoading ? null : widget.onSubmit,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppConstants.primaryColor,
+                    shape: RoundedRectangleBorder(
+                      borderRadius:
+                          BorderRadius.circular(AppConstants.radiusMedium),
+                    ),
+                  ),
+                  child: widget.isLoading
+                      ? const CircularProgressIndicator(
+                          color: Colors.white, strokeWidth: 2)
+                      : const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              'Submit Answer',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: AppConstants.fontBody,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                            SizedBox(width: 8),
+                            Icon(Icons.check_circle_outline,
+                                color: Colors.white, size: 18),
+                          ],
+                        ),
+                ),
+              ),
+            ],
+
             const SizedBox(height: AppConstants.paddingMedium),
 
-            // Skip & Previous buttons row
+            // ── Previous / Skip row ───────────────────────────────────
             Row(
               children: [
-                // Previous button (only shown when canGoBack is true)
                 if (widget.canGoBack) ...[
                   Expanded(
                     child: SizedBox(
                       height: 48,
                       child: OutlinedButton(
-                        onPressed: widget.isLoading ? null : widget.onPrevious,
+                        onPressed:
+                            widget.isLoading ? null : widget.onPrevious,
                         style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: AppConstants.textSecondary),
+                          side: const BorderSide(
+                              color: AppConstants.textSecondary),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(AppConstants.radiusMedium),
+                            borderRadius: BorderRadius.circular(
+                                AppConstants.radiusMedium),
                           ),
                         ),
                         child: const Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.skip_previous_rounded, color: AppConstants.textSecondary, size: 18),
+                            Icon(Icons.skip_previous_rounded,
+                                color: AppConstants.textSecondary, size: 18),
                             SizedBox(width: 6),
                             Text(
                               'Previous',
@@ -334,17 +519,17 @@ class _QuestionCardState extends State<QuestionCard> {
                   ),
                   const SizedBox(width: AppConstants.paddingSmall),
                 ],
-
-                // Skip button
                 Expanded(
                   child: SizedBox(
                     height: 48,
                     child: OutlinedButton(
                       onPressed: widget.isLoading ? null : widget.onSkip,
                       style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: AppConstants.primaryColor),
+                        side: const BorderSide(
+                            color: AppConstants.primaryColor),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(AppConstants.radiusMedium),
+                          borderRadius: BorderRadius.circular(
+                              AppConstants.radiusMedium),
                         ),
                       ),
                       child: const Row(
@@ -359,7 +544,8 @@ class _QuestionCardState extends State<QuestionCard> {
                             ),
                           ),
                           SizedBox(width: 6),
-                          Icon(Icons.skip_next_rounded, color: AppConstants.primaryColor, size: 18),
+                          Icon(Icons.skip_next_rounded,
+                              color: AppConstants.primaryColor, size: 18),
                         ],
                       ),
                     ),

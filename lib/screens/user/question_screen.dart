@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import '../../models/question_model.dart';
 import '../../models/subject_model.dart';
@@ -41,8 +42,21 @@ class _QuestionScreenState extends State<QuestionScreen> {
   final Set<int> _skippedIds = {};
   int? _sessionId;
   Map<int, String> _topicNames = {};
+  // Cache shuffled choices per question index (so rebuilds don't reshuffle)
+  final Map<int, List<String>> _shuffledChoicesCache = {};
 
   QuestionModel get _currentQuestion => widget.questions[_currentIndex];
+
+  List<String> get _currentShuffledChoices {
+    final q = _currentQuestion;
+    if (q.answerType != 'multiple_choice') return [];
+    if (!_shuffledChoicesCache.containsKey(_currentIndex)) {
+      final all = [...q.choices, q.correctTerm];
+      all.shuffle(Random());
+      _shuffledChoicesCache[_currentIndex] = all;
+    }
+    return _shuffledChoicesCache[_currentIndex]!;
+  }
 
   @override
   void initState() {
@@ -279,6 +293,8 @@ class _QuestionScreenState extends State<QuestionScreen> {
             canGoBack: _currentIndex > 0,
             topicName: _topicNames[_currentQuestion.topicId],
             clue: _generateClue(_currentQuestion.correctTerm),
+            answerType: _currentQuestion.answerType,
+            shuffledChoices: _currentShuffledChoices,
           ),
         ),
       ),

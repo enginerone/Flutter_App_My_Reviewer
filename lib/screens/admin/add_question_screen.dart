@@ -31,13 +31,36 @@ class _AddQuestionScreenState extends State<AddQuestionScreen> {
   bool _isLoading = false;
   bool _loadingSubjects = true;
 
+  // Answer type
+  String _answerType = 'identification'; // 'identification' | 'multiple_choice'
+  // Distractor controllers (for MC — the correct term is a separate field)
+  final List<TextEditingController> _choiceControllers = [];
+
   bool get _isEditing => widget.existing != null;
+  bool get _isMC => _answerType == 'multiple_choice';
 
   @override
   void initState() {
     super.initState();
-    _meaningController = TextEditingController(text: widget.existing?.meaning ?? '');
-    _termController = TextEditingController(text: widget.existing?.correctTerm ?? '');
+    _meaningController =
+        TextEditingController(text: widget.existing?.meaning ?? '');
+    _termController =
+        TextEditingController(text: widget.existing?.correctTerm ?? '');
+
+    if (_isEditing) {
+      _answerType = widget.existing!.answerType;
+      // Restore saved distractors
+      for (final c in widget.existing!.choices) {
+        _choiceControllers.add(TextEditingController(text: c));
+      }
+    }
+    // Ensure at least 2 distractor rows for MC
+    if (_isMC && _choiceControllers.length < 2) {
+      while (_choiceControllers.length < 2) {
+        _choiceControllers.add(TextEditingController());
+      }
+    }
+
     _loadSubjects();
   }
 
@@ -45,7 +68,33 @@ class _AddQuestionScreenState extends State<AddQuestionScreen> {
   void dispose() {
     _meaningController.dispose();
     _termController.dispose();
+    for (final c in _choiceControllers) {
+      c.dispose();
+    }
     super.dispose();
+  }
+
+  void _switchAnswerType(String type) {
+    setState(() {
+      _answerType = type;
+      if (_isMC && _choiceControllers.length < 2) {
+        while (_choiceControllers.length < 2) {
+          _choiceControllers.add(TextEditingController());
+        }
+      }
+    });
+  }
+
+  void _addChoice() {
+    if (_choiceControllers.length >= 3) return; // max 3 distractors (4 total with correct)
+    setState(() => _choiceControllers.add(TextEditingController()));
+  }
+
+  void _removeChoice(int index) {
+    if (_choiceControllers.length <= 2) return; // enforce minimum 2 distractors
+    final ctrl = _choiceControllers.removeAt(index);
+    ctrl.dispose();
+    setState(() {});
   }
 
   Future<void> _loadTopics(int subjectId) async {
@@ -61,7 +110,7 @@ class _AddQuestionScreenState extends State<AddQuestionScreen> {
           orElse: () => topics.first,
         );
       } else {
-        _selectedTopic = null; // reset when changing subjects
+        _selectedTopic = null;
       }
     });
   }
@@ -72,12 +121,15 @@ class _AddQuestionScreenState extends State<AddQuestionScreen> {
     setState(() {
       _subjects = list;
       _loadingSubjects = false;
-      // Pre-select subject if editing
       if (_isEditing) {
         _selectedSubject = list.firstWhere(
           (s) => s.id == widget.existing!.subjectId,
-          orElse: () => list.isNotEmpty ? list.first : SubjectModel(subjectName: ''),
+          orElse: () =>
+              list.isNotEmpty ? list.first : SubjectModel(subjectName: ''),
         );
+        if (_selectedSubject?.id != null) {
+          _loadTopics(_selectedSubject!.id!);
+        }
       }
     });
   }
@@ -93,7 +145,39 @@ class _AddQuestionScreenState extends State<AddQuestionScreen> {
       return;
     }
     if (!_formKey.currentState!.validate()) return;
+
+    // Extra MC validation
+    if (_isMC) {
+      final distractors =
+          _choiceControllers.map((c) => c.text.trim()).toList();
+      if (distractors.any((d) => d.isEmpty)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please fill in all choice fields.'),
+            backgroundColor: AppConstants.errorColor,
+          ),
+        );
+        return;
+      }
+      final correctTerm = _termController.text.trim().toLowerCase();
+      if (distractors
+          .any((d) => d.toLowerCase() == correctTerm)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content:
+                Text('Choices must not duplicate the correct term.'),
+            backgroundColor: AppConstants.errorColor,
+          ),
+        );
+        return;
+      }
+    }
+
     setState(() => _isLoading = true);
+
+    final distractors = _isMC
+        ? _choiceControllers.map((c) => c.text.trim()).toList()
+        : <String>[];
 
     final question = QuestionModel(
       id: widget.existing?.id,
@@ -101,6 +185,8 @@ class _AddQuestionScreenState extends State<AddQuestionScreen> {
       topicId: _selectedTopic?.id,
       meaning: _meaningController.text.trim(),
       correctTerm: _termController.text.trim(),
+      answerType: _answerType,
+      choices: distractors,
     );
 
     if (_isEditing) {
@@ -109,6 +195,11 @@ class _AddQuestionScreenState extends State<AddQuestionScreen> {
       await _service.addQuestion(question);
       _meaningController.clear();
       _termController.clear();
+      if (_isMC) {
+        for (final c in _choiceControllers) {
+          c.clear();
+        }
+      }
     }
 
     if (!mounted) return;
@@ -121,6 +212,193 @@ class _AddQuestionScreenState extends State<AddQuestionScreen> {
       ),
     );
     if (_isEditing) Navigator.of(context).pop(true);
+  }
+
+  // ── UI Helpers ─────────────────────────────────────────────────────
+
+  Widget _buildAnswerTypeSelector() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Answer Type',
+          style: TextStyle(
+            fontSize: AppConstants.fontSmall,
+            fontWeight: FontWeight.w700,
+            color: AppConstants.textSecondary,
+            letterSpacing: 0.5,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            _typeChip(
+              label: 'Identification',
+              icon: Icons.edit_outlined,
+              value: 'identification',
+            ),
+            const SizedBox(width: 10),
+            _typeChip(
+              label: 'Multiple Choice',
+              icon: Icons.list_alt_rounded,
+              value: 'multiple_choice',
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _typeChip({
+    required String label,
+    required IconData icon,
+    required String value,
+  }) {
+    final selected = _answerType == value;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => _switchAnswerType(value),
+        child: AnimatedContainer(
+          duration: AppConstants.animFast,
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            color: selected
+                ? AppConstants.primaryColor
+                : AppConstants.primaryColor.withAlpha(12),
+            borderRadius:
+                BorderRadius.circular(AppConstants.radiusMedium),
+            border: Border.all(
+              color: selected
+                  ? AppConstants.primaryColor
+                  : AppConstants.dividerColor,
+              width: 1.5,
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon,
+                  size: 22,
+                  color: selected ? Colors.white : AppConstants.primaryColor),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: AppConstants.fontSmall,
+                  fontWeight: FontWeight.w700,
+                  color:
+                      selected ? Colors.white : AppConstants.primaryColor,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMCChoices() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: AppConstants.paddingMedium),
+        Row(
+          children: [
+            const Icon(Icons.format_list_bulleted_rounded,
+                size: 16, color: AppConstants.accentColor),
+            const SizedBox(width: 6),
+            const Text(
+              'WRONG CHOICES (DISTRACTORS)',
+              style: TextStyle(
+                fontSize: AppConstants.fontSmall,
+                fontWeight: FontWeight.w700,
+                color: AppConstants.accentColor,
+                letterSpacing: 1.0,
+              ),
+            ),
+            const Spacer(),
+            Text(
+              '${_choiceControllers.length}/3',
+              style: const TextStyle(
+                  fontSize: AppConstants.fontSmall,
+                  color: AppConstants.textSecondary),
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Add 2–3 wrong answers. The correct term above will be added automatically.',
+          style: TextStyle(
+            fontSize: AppConstants.fontSmall,
+            color: AppConstants.textSecondary.withAlpha(180),
+          ),
+        ),
+        const SizedBox(height: AppConstants.paddingSmall),
+        ...List.generate(_choiceControllers.length, (i) {
+          return Padding(
+            padding:
+                const EdgeInsets.only(bottom: AppConstants.paddingSmall),
+            child: Row(
+              children: [
+                Container(
+                  width: 28,
+                  height: 28,
+                  decoration: BoxDecoration(
+                    color: AppConstants.errorColor.withAlpha(20),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Center(
+                    child: Text(
+                      String.fromCharCode(65 + i), // A, B, C
+                      style: const TextStyle(
+                        fontSize: AppConstants.fontSmall,
+                        fontWeight: FontWeight.bold,
+                        color: AppConstants.errorColor,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: TextFormField(
+                    controller: _choiceControllers[i],
+                    textCapitalization: TextCapitalization.words,
+                    decoration: InputDecoration(
+                      hintText: 'Wrong choice ${i + 1}',
+                      hintStyle: const TextStyle(
+                          color: AppConstants.textSecondary),
+                      isDense: true,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(
+                            AppConstants.radiusMedium),
+                      ),
+                    ),
+                  ),
+                ),
+                if (_choiceControllers.length > 2)
+                  IconButton(
+                    icon: const Icon(Icons.remove_circle_outline,
+                        color: AppConstants.errorColor, size: 20),
+                    onPressed: () => _removeChoice(i),
+                    tooltip: 'Remove choice',
+                  ),
+              ],
+            ),
+          );
+        }),
+        if (_choiceControllers.length < 3)
+          TextButton.icon(
+            onPressed: _addChoice,
+            icon: const Icon(Icons.add_circle_outline,
+                size: 18, color: AppConstants.primaryColor),
+            label: const Text(
+              'Add another choice',
+              style: TextStyle(color: AppConstants.primaryColor),
+            ),
+          ),
+      ],
+    );
   }
 
   @override
@@ -141,12 +419,14 @@ class _AddQuestionScreenState extends State<AddQuestionScreen> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       const Icon(Icons.warning_amber_rounded,
-                          size: 64, color: AppConstants.textSecondary),
+                          size: 64,
+                          color: AppConstants.textSecondary),
                       const SizedBox(height: AppConstants.paddingMedium),
                       const Text(
                         'No subjects found.\nPlease add a subject first.',
                         textAlign: TextAlign.center,
-                        style: TextStyle(color: AppConstants.textSecondary),
+                        style:
+                            TextStyle(color: AppConstants.textSecondary),
                       ),
                       const SizedBox(height: AppConstants.paddingLarge),
                       TextButton(
@@ -157,7 +437,8 @@ class _AddQuestionScreenState extends State<AddQuestionScreen> {
                   ),
                 )
               : SingleChildScrollView(
-                  padding: const EdgeInsets.all(AppConstants.paddingLarge),
+                  padding:
+                      const EdgeInsets.all(AppConstants.paddingLarge),
                   child: Form(
                     key: _formKey,
                     child: Column(
@@ -165,20 +446,35 @@ class _AddQuestionScreenState extends State<AddQuestionScreen> {
                         Card(
                           elevation: AppConstants.cardElevation,
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(AppConstants.radiusLarge),
+                            borderRadius: BorderRadius.circular(
+                                AppConstants.radiusLarge),
                           ),
                           child: Padding(
-                            padding: const EdgeInsets.all(AppConstants.paddingLarge),
+                            padding: const EdgeInsets.all(
+                                AppConstants.paddingLarge),
                             child: Column(
+                              crossAxisAlignment:
+                                  CrossAxisAlignment.start,
                               children: [
-                                // Subject dropdown
+                                // ── Answer Type Selector ────────────
+                                _buildAnswerTypeSelector(),
+                                const SizedBox(
+                                    height: AppConstants.paddingMedium),
+                                const Divider(),
+                                const SizedBox(
+                                    height: AppConstants.paddingSmall),
+
+                                // ── Subject ──────────────────────────
                                 DropdownButtonFormField<SubjectModel>(
                                   value: _selectedSubject,
                                   decoration: InputDecoration(
                                     labelText: 'Select Subject',
-                                    prefixIcon: const Icon(Icons.book_outlined),
+                                    prefixIcon: const Icon(
+                                        Icons.book_outlined),
                                     border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(AppConstants.radiusMedium),
+                                      borderRadius:
+                                          BorderRadius.circular(
+                                              AppConstants.radiusMedium),
                                     ),
                                   ),
                                   items: _subjects.map((s) {
@@ -189,31 +485,42 @@ class _AddQuestionScreenState extends State<AddQuestionScreen> {
                                   }).toList(),
                                   onChanged: (v) {
                                     if (v != null) {
-                                      setState(() => _selectedSubject = v);
+                                      setState(() =>
+                                          _selectedSubject = v);
                                       _loadTopics(v.id!);
                                     }
                                   },
                                 ),
-                                const SizedBox(height: AppConstants.paddingMedium),
+                                const SizedBox(
+                                    height: AppConstants.paddingMedium),
 
-                                // Topic dropdown (if any)
+                                // ── Topic (optional) ─────────────────
                                 if (_loadingTopics)
                                   const Padding(
-                                    padding: EdgeInsets.symmetric(vertical: 8.0),
-                                    child: CircularProgressIndicator(),
+                                    padding: EdgeInsets.symmetric(
+                                        vertical: 8.0),
+                                    child: Center(
+                                        child:
+                                            CircularProgressIndicator()),
                                   )
                                 else if (_topics.isNotEmpty) ...[
-                                  DropdownButtonFormField<CategoryTopicModel>(
+                                  DropdownButtonFormField<
+                                      CategoryTopicModel>(
                                     value: _selectedTopic,
                                     decoration: InputDecoration(
-                                      labelText: 'Select Topic (Optional)',
-                                      prefixIcon: const Icon(Icons.category_outlined),
+                                      labelText:
+                                          'Select Topic (Optional)',
+                                      prefixIcon: const Icon(
+                                          Icons.category_outlined),
                                       border: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(AppConstants.radiusMedium),
+                                        borderRadius:
+                                            BorderRadius.circular(
+                                                AppConstants.radiusMedium),
                                       ),
                                     ),
                                     items: [
-                                      const DropdownMenuItem<CategoryTopicModel>(
+                                      const DropdownMenuItem<
+                                          CategoryTopicModel>(
                                         value: null,
                                         child: Text('No Topic'),
                                       ),
@@ -222,51 +529,73 @@ class _AddQuestionScreenState extends State<AddQuestionScreen> {
                                           value: t,
                                           child: Text(t.topicName),
                                         );
-                                      }).toList(),
+                                      }),
                                     ],
-                                    onChanged: (v) => setState(() => _selectedTopic = v),
+                                    onChanged: (v) => setState(
+                                        () => _selectedTopic = v),
                                   ),
-                                  const SizedBox(height: AppConstants.paddingMedium),
+                                  const SizedBox(
+                                      height:
+                                          AppConstants.paddingMedium),
                                 ],
 
-                                // Meaning
+                                // ── Meaning ──────────────────────────
                                 TextFormField(
                                   controller: _meaningController,
                                   maxLines: 4,
-                                  validator: (v) => Validators.validateRequired(v, 'Meaning'),
+                                  validator: (v) =>
+                                      Validators.validateRequired(
+                                          v, 'Meaning'),
                                   decoration: InputDecoration(
                                     labelText: 'Meaning / Definition',
                                     alignLabelWithHint: true,
-                                    prefixIcon: const Icon(Icons.description_outlined),
+                                    prefixIcon: const Icon(
+                                        Icons.description_outlined),
                                     border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(AppConstants.radiusMedium),
+                                      borderRadius:
+                                          BorderRadius.circular(
+                                              AppConstants.radiusMedium),
                                     ),
                                   ),
                                 ),
-                                const SizedBox(height: AppConstants.paddingMedium),
+                                const SizedBox(
+                                    height: AppConstants.paddingMedium),
 
-                                // Correct term
+                                // ── Correct Term ──────────────────────
                                 TextFormField(
                                   controller: _termController,
-                                  textCapitalization: TextCapitalization.words,
-                                  validator: (v) => Validators.validateRequired(v, 'Correct term'),
+                                  textCapitalization:
+                                      TextCapitalization.words,
+                                  validator: (v) =>
+                                      Validators.validateRequired(
+                                          v, 'Correct term'),
                                   decoration: InputDecoration(
                                     labelText: 'Correct Term (Answer)',
-                                    prefixIcon: const Icon(Icons.check_circle_outline),
+                                    prefixIcon: const Icon(
+                                        Icons.check_circle_outline),
                                     border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(AppConstants.radiusMedium),
+                                      borderRadius:
+                                          BorderRadius.circular(
+                                              AppConstants.radiusMedium),
                                     ),
                                   ),
                                 ),
+
+                                // ── MC Choices ────────────────────────
+                                if (_isMC) _buildMCChoices(),
                               ],
                             ),
                           ),
                         ),
-                        const SizedBox(height: AppConstants.paddingLarge),
+                        const SizedBox(
+                            height: AppConstants.paddingLarge),
                         _isLoading
-                            ? const Center(child: CircularProgressIndicator())
+                            ? const Center(
+                                child: CircularProgressIndicator())
                             : CustomButton(
-                                label: _isEditing ? 'Update Question' : 'Save Question',
+                                label: _isEditing
+                                    ? 'Update Question'
+                                    : 'Save Question',
                                 icon: Icons.save_rounded,
                                 onPressed: _save,
                               ),
@@ -277,5 +606,3 @@ class _AddQuestionScreenState extends State<AddQuestionScreen> {
     );
   }
 }
-
-

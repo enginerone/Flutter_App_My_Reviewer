@@ -172,21 +172,67 @@ class _ManageQuestionsScreenState extends State<ManageQuestionsScreen> {
                                     Row(
                                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                       children: [
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                              horizontal: 10, vertical: 4),
-                                          decoration: BoxDecoration(
-                                            color: AppConstants.primaryColor.withAlpha(20),
-                                            borderRadius: BorderRadius.circular(20),
-                                          ),
-                                          child: Text(
-                                            subjectName,
-                                            style: const TextStyle(
-                                              fontSize: AppConstants.fontSmall,
-                                              fontWeight: FontWeight.w600,
-                                              color: AppConstants.primaryColor,
+                                        Row(
+                                          children: [
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(
+                                                  horizontal: 10, vertical: 4),
+                                              decoration: BoxDecoration(
+                                                color: AppConstants.primaryColor.withAlpha(20),
+                                                borderRadius: BorderRadius.circular(20),
+                                              ),
+                                              child: Text(
+                                                subjectName,
+                                                style: const TextStyle(
+                                                  fontSize: AppConstants.fontSmall,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: AppConstants.primaryColor,
+                                                ),
+                                              ),
                                             ),
-                                          ),
+                                            const SizedBox(width: 6),
+                                            // Answer type badge
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(
+                                                  horizontal: 8, vertical: 4),
+                                              decoration: BoxDecoration(
+                                                color: q.answerType == 'multiple_choice'
+                                                    ? AppConstants.accentColor.withAlpha(25)
+                                                    : AppConstants.successColor.withAlpha(20),
+                                                borderRadius: BorderRadius.circular(20),
+                                                border: Border.all(
+                                                  color: q.answerType == 'multiple_choice'
+                                                      ? AppConstants.accentColor.withAlpha(80)
+                                                      : AppConstants.successColor.withAlpha(60),
+                                                ),
+                                              ),
+                                              child: Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Icon(
+                                                    q.answerType == 'multiple_choice'
+                                                        ? Icons.list_alt_rounded
+                                                        : Icons.edit_outlined,
+                                                    size: 11,
+                                                    color: q.answerType == 'multiple_choice'
+                                                        ? AppConstants.accentColor
+                                                        : AppConstants.successColor,
+                                                  ),
+                                                  const SizedBox(width: 3),
+                                                  Text(
+                                                    q.answerType == 'multiple_choice' ? 'MC' : 'ID',
+                                                    style: TextStyle(
+                                                      fontSize: 10,
+                                                      fontWeight: FontWeight.bold,
+                                                      color: q.answerType == 'multiple_choice'
+                                                          ? AppConstants.accentColor
+                                                          : AppConstants.successColor,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ],
                                         ),
                                         Text(
                                           '#${index + 1}',
