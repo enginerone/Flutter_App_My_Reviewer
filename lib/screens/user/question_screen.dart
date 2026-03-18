@@ -186,6 +186,12 @@ class _QuestionScreenState extends State<QuestionScreen> {
     }
   }
 
+  void _goToPrevious() {
+    if (_currentIndex <= 0) return;
+    _answerController.clear();
+    setState(() => _currentIndex = _currentIndex - 1);
+  }
+
   Future<void> _saveSession(bool isCompleted) async {
     final session = QuizSessionModel(
       id: _sessionId,
@@ -269,6 +275,8 @@ class _QuestionScreenState extends State<QuestionScreen> {
             onSubmit: _submitAnswer,
             isLoading: _isProcessing,
             onSkip: _skipQuestion,
+            onPrevious: _goToPrevious,
+            canGoBack: _currentIndex > 0,
             topicName: _topicNames[_currentQuestion.topicId],
             clue: _generateClue(_currentQuestion.correctTerm),
           ),

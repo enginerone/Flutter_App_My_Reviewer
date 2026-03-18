@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../utils/constants.dart';
 
-class QuestionCard extends StatelessWidget {
+class QuestionCard extends StatefulWidget {
   final int questionNumber;
   final int totalQuestions;
   final String meaning;
@@ -9,6 +9,8 @@ class QuestionCard extends StatelessWidget {
   final VoidCallback onSubmit;
   final bool isLoading;
   final VoidCallback onSkip;
+  final VoidCallback? onPrevious;
+  final bool canGoBack;
   final String? topicName;
   final String clue;
 
@@ -21,9 +23,27 @@ class QuestionCard extends StatelessWidget {
     required this.onSubmit,
     required this.onSkip,
     required this.clue,
+    this.onPrevious,
+    this.canGoBack = false,
     this.topicName,
     this.isLoading = false,
   });
+
+  @override
+  State<QuestionCard> createState() => _QuestionCardState();
+}
+
+class _QuestionCardState extends State<QuestionCard> {
+  bool _clueVisible = true;
+
+  // Reset clue visibility whenever the question changes
+  @override
+  void didUpdateWidget(QuestionCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.questionNumber != widget.questionNumber) {
+      setState(() => _clueVisible = true);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -42,7 +62,7 @@ class QuestionCard extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Question $questionNumber of $totalQuestions',
+                  'Question ${widget.questionNumber} of ${widget.totalQuestions}',
                   style: const TextStyle(
                     fontSize: AppConstants.fontSmall,
                     fontWeight: FontWeight.w600,
@@ -60,7 +80,7 @@ class QuestionCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(AppConstants.radiusSmall),
                   ),
                   child: Text(
-                    '$questionNumber/$totalQuestions',
+                    '${widget.questionNumber}/${widget.totalQuestions}',
                     style: const TextStyle(
                       fontSize: AppConstants.fontSmall,
                       fontWeight: FontWeight.bold,
@@ -74,7 +94,7 @@ class QuestionCard extends StatelessWidget {
             ClipRRect(
               borderRadius: BorderRadius.circular(4),
               child: LinearProgressIndicator(
-                value: questionNumber / totalQuestions,
+                value: widget.questionNumber / widget.totalQuestions,
                 backgroundColor: AppConstants.dividerColor,
                 valueColor: const AlwaysStoppedAnimation<Color>(
                   AppConstants.primaryColor,
@@ -97,7 +117,7 @@ class QuestionCard extends StatelessWidget {
                     letterSpacing: 1.5,
                   ),
                 ),
-                if (topicName != null && topicName!.isNotEmpty)
+                if (widget.topicName != null && widget.topicName!.isNotEmpty)
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
@@ -111,7 +131,7 @@ class QuestionCard extends StatelessWidget {
                         const Icon(Icons.category_outlined, size: 14, color: AppConstants.accentColor),
                         const SizedBox(width: 4),
                         Text(
-                          topicName!,
+                          widget.topicName!,
                           style: const TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
@@ -135,7 +155,7 @@ class QuestionCard extends StatelessWidget {
                 border: Border.all(color: AppConstants.dividerColor),
               ),
               child: Text(
-                meaning,
+                widget.meaning,
                 style: const TextStyle(
                   fontSize: AppConstants.fontTitle,
                   color: AppConstants.textPrimary,
@@ -158,9 +178,9 @@ class QuestionCard extends StatelessWidget {
             ),
             const SizedBox(height: AppConstants.paddingSmall),
 
-            // Clue display
+            // Clue display with toggle
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               margin: const EdgeInsets.only(bottom: AppConstants.paddingMedium),
               decoration: BoxDecoration(
                 color: AppConstants.primaryColor.withAlpha(15),
@@ -172,14 +192,37 @@ class QuestionCard extends StatelessWidget {
                   const Icon(Icons.lightbulb_outline, size: 20, color: AppConstants.primaryColor),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: Text(
-                      'Clue: $clue',
-                      style: const TextStyle(
-                        fontSize: AppConstants.fontBody,
-                        fontWeight: FontWeight.w600,
+                    child: _clueVisible
+                        ? Text(
+                            'Clue: ${widget.clue}',
+                            style: const TextStyle(
+                              fontSize: AppConstants.fontBody,
+                              fontWeight: FontWeight.w600,
+                              color: AppConstants.primaryColor,
+                              letterSpacing: 2.0,
+                            ),
+                          )
+                        : const Text(
+                            'Clue hidden',
+                            style: TextStyle(
+                              fontSize: AppConstants.fontBody,
+                              fontStyle: FontStyle.italic,
+                              color: AppConstants.textSecondary,
+                            ),
+                          ),
+                  ),
+                  // Toggle clue visibility button
+                  Tooltip(
+                    message: _clueVisible ? 'Hide clue' : 'Show clue',
+                    child: IconButton(
+                      icon: Icon(
+                        _clueVisible ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                        size: 20,
                         color: AppConstants.primaryColor,
-                        letterSpacing: 2.0,
                       ),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      onPressed: () => setState(() => _clueVisible = !_clueVisible),
                     ),
                   ),
                 ],
@@ -188,7 +231,7 @@ class QuestionCard extends StatelessWidget {
 
             // Text Input
             TextField(
-              controller: answerController,
+              controller: widget.answerController,
               textCapitalization: TextCapitalization.words,
               decoration: InputDecoration(
                 hintText: 'Type the correct term...',
@@ -210,14 +253,14 @@ class QuestionCard extends StatelessWidget {
                     width: 1.5,
                   ),
                 ),
-                suffixIcon: answerController.text.isNotEmpty
+                suffixIcon: widget.answerController.text.isNotEmpty
                     ? IconButton(
                         icon: const Icon(Icons.clear, color: AppConstants.textSecondary),
-                        onPressed: () => answerController.clear(),
+                        onPressed: () => widget.answerController.clear(),
                       )
                     : null,
               ),
-              onSubmitted: (_) => onSubmit(),
+              onSubmitted: (_) => widget.onSubmit(),
             ),
             const SizedBox(height: AppConstants.paddingLarge),
 
@@ -226,14 +269,14 @@ class QuestionCard extends StatelessWidget {
               width: double.infinity,
               height: 52,
               child: ElevatedButton(
-                onPressed: isLoading ? null : onSubmit,
+                onPressed: widget.isLoading ? null : widget.onSubmit,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppConstants.primaryColor,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(AppConstants.radiusMedium),
                   ),
                 ),
-                child: isLoading
+                child: widget.isLoading
                     ? const CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
                     : const Row(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -254,35 +297,75 @@ class QuestionCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: AppConstants.paddingMedium),
-            
-            // Skip button
-            SizedBox(
-              width: double.infinity,
-              height: 48,
-              child: OutlinedButton(
-                onPressed: isLoading ? null : onSkip,
-                style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: AppConstants.primaryColor),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(AppConstants.radiusMedium),
-                  ),
-                ),
-                child: const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      'Skip Question',
-                      style: TextStyle(
-                        color: AppConstants.primaryColor,
-                        fontSize: AppConstants.fontBody,
-                        fontWeight: FontWeight.w600,
+
+            // Skip & Previous buttons row
+            Row(
+              children: [
+                // Previous button (only shown when canGoBack is true)
+                if (widget.canGoBack) ...[
+                  Expanded(
+                    child: SizedBox(
+                      height: 48,
+                      child: OutlinedButton(
+                        onPressed: widget.isLoading ? null : widget.onPrevious,
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: AppConstants.textSecondary),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(AppConstants.radiusMedium),
+                          ),
+                        ),
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.skip_previous_rounded, color: AppConstants.textSecondary, size: 18),
+                            SizedBox(width: 6),
+                            Text(
+                              'Previous',
+                              style: TextStyle(
+                                color: AppConstants.textSecondary,
+                                fontSize: AppConstants.fontBody,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                    SizedBox(width: 8),
-                    Icon(Icons.skip_next_rounded, color: AppConstants.primaryColor, size: 18),
-                  ],
+                  ),
+                  const SizedBox(width: AppConstants.paddingSmall),
+                ],
+
+                // Skip button
+                Expanded(
+                  child: SizedBox(
+                    height: 48,
+                    child: OutlinedButton(
+                      onPressed: widget.isLoading ? null : widget.onSkip,
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: AppConstants.primaryColor),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(AppConstants.radiusMedium),
+                        ),
+                      ),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            'Skip',
+                            style: TextStyle(
+                              color: AppConstants.primaryColor,
+                              fontSize: AppConstants.fontBody,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          SizedBox(width: 6),
+                          Icon(Icons.skip_next_rounded, color: AppConstants.primaryColor, size: 18),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
-              ),
+              ],
             ),
           ],
         ),
@@ -290,4 +373,3 @@ class QuestionCard extends StatelessWidget {
     );
   }
 }
-
