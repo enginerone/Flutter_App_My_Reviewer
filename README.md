@@ -359,16 +359,17 @@ Skipped questions are temporarily bypassed and will be presented again at the en
 ## Summary of Added Features
 
 **Admin Side:**
-- Add Category Topic inside subjects
-- Organize questions by topic
-- Manage topics for better content structure
+- Manage Subjects and Category Topics for better organization.
+- Add Questions with different **Answer Types**:
+  - **Identification**: The student types the correct term.
+  - **Multiple Choice**: The student selects the correct term from a list of distractors.
+- Filter questions by **Subject** and search by **Question Number** in the Manage Questions screen to quickly locate specific content.
 
 **User / Student Side:**
-- Subject completion tracking
-- Progress monitoring
-- Resume unfinished quizzes
-- Skip questions feature
-- Ability to repeat completed subjects
+- Track Subject progress and completion status.
+- Pause and safely resume unfinished quizzes.
+- **Skip questions** temporarily. If skipped, the system will optionally reveal the correct answer allowing the student to learn and review before attempting it again later.
+- Review results and repeat completed subjects to improve scores.
 
 ---
 
@@ -453,6 +454,21 @@ lib/config/database_helper.dart
 | 4     | User quiz answering system           |
 | 5     | Score and result tracking            |
 | 6     | UI improvements and testing          |
+
+---
+
+## Required Development Tools
+
+To successfully contribute to this project, the following tools must be installed and configured on your development machine:
+
+1. **Flutter SDK**: The core framework. Ensure it is added to your system PATH.
+2. **Dart SDK**: Installed alongside Flutter.
+3. **Android Studio**: For Android emulation and SDK management.
+4. **Java Development Kit (JDK 17)**: Strongly recommended for Gradle compatibility with the `sqflite` plugin.
+5. **Git**: For version control.
+6. **SQLite Database Browser (Optional)**: Useful for testing query results or examining the local `.db` file extracted from an emulator.
+
+> For a complete list of troubleshooting steps and essential terminal commands, please refer to the `TROUBLESHOOTING_AND_GUIDE.md` file located in the root directory.
 
 ---
 

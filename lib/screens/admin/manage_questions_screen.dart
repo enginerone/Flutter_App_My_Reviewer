@@ -17,6 +17,8 @@ class _ManageQuestionsScreenState extends State<ManageQuestionsScreen> {
   List<QuestionModel> _questions = [];
   Map<int, String> _subjectNames = {};
   bool _isLoading = true;
+  String _searchQuery = '';
+  int? _selectedSubjectId;
 
   @override
   void initState() {
@@ -83,16 +85,47 @@ class _ManageQuestionsScreenState extends State<ManageQuestionsScreen> {
   @override
   Widget build(BuildContext context) {
     // Group questions by subject
-    final Map<int, List<QuestionModel>> groupedQuestions = {};
+    final Map<int, List<QuestionModel>> allGroupedQuestions = {};
     for (var q in _questions) {
-      if (!groupedQuestions.containsKey(q.subjectId)) {
-        groupedQuestions[q.subjectId] = [];
+      if (!allGroupedQuestions.containsKey(q.subjectId)) {
+        allGroupedQuestions[q.subjectId] = [];
       }
-      groupedQuestions[q.subjectId]!.add(q);
+      allGroupedQuestions[q.subjectId]!.add(q);
+    }
+
+    final Map<int, List<MapEntry<int, QuestionModel>>> filteredGroupedQuestions = {};
+
+    for (var subjectId in allGroupedQuestions.keys) {
+      if (_selectedSubjectId != null && _selectedSubjectId != subjectId) {
+        continue;
+      }
+      
+      final subjectQs = allGroupedQuestions[subjectId]!;
+      List<MapEntry<int, QuestionModel>> filteredQs = [];
+      
+      for (int i = 0; i < subjectQs.length; i++) {
+        final q = subjectQs[i];
+        final questionNumber = i + 1;
+        
+        bool matchesSearch = true;
+        if (_searchQuery.trim().isNotEmpty) {
+          if (!questionNumber.toString().contains(_searchQuery.trim())) {
+            matchesSearch = false;
+          }
+        }
+        
+        if (matchesSearch) {
+          filteredQs.add(MapEntry(i, q));
+        }
+      }
+      
+      if (filteredQs.isNotEmpty) {
+        filteredGroupedQuestions[subjectId] = filteredQs;
+      }
     }
 
     // Sort subjects by name
-    final sortedSubjectIds = groupedQuestions.keys.toList()
+    final sortedSubjectIds = filteredGroupedQuestions.keys.toList()
       ..sort((a, b) => (_subjectNames[a] ?? '').compareTo(_subjectNames[b] ?? ''));
 
     return Scaffold(
@@ -111,30 +144,96 @@ class _ManageQuestionsScreenState extends State<ManageQuestionsScreen> {
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : _questions.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.inbox_rounded,
-                          size: 80, color: AppConstants.textSecondary.withAlpha(80)),
-                      const SizedBox(height: AppConstants.paddingMedium),
-                      const Text(
-                        'No questions yet.',
-                        style: TextStyle(
-                            color: AppConstants.textSecondary,
-                            fontSize: AppConstants.fontTitle),
-                      ),
-                    ],
+          : Column(
+              children: [
+                if (_questions.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.all(AppConstants.paddingMedium),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          flex: 2,
+                          child: DropdownButtonFormField<int?>(
+                            isExpanded: true,
+                            value: _selectedSubjectId,
+                            decoration: InputDecoration(
+                              labelText: 'Filter by Subject',
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppConstants.radiusMedium)),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                            ),
+                            items: [
+                              const DropdownMenuItem<int?>(
+                                value: null,
+                                child: Text('All Subjects'),
+                              ),
+                              ..._subjectNames.entries.map((e) => DropdownMenuItem<int?>(
+                                value: e.key,
+                                child: Text(e.value),
+                              )),
+                            ],
+                            onChanged: (val) {
+                              setState(() {
+                                _selectedSubjectId = val;
+                              });
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: AppConstants.paddingMedium),
+                        Expanded(
+                          flex: 1,
+                          child: TextField(
+                            keyboardType: TextInputType.number,
+                            decoration: InputDecoration(
+                              labelText: 'Q. No.',
+                              prefixIcon: const Icon(Icons.search, size: 20),
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppConstants.radiusMedium)),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 0, vertical: 12),
+                            ),
+                            onChanged: (val) {
+                              setState(() {
+                                _searchQuery = val;
+                              });
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                )
-              : ListView.builder(
-                  padding: const EdgeInsets.all(AppConstants.paddingMedium),
-                  itemCount: sortedSubjectIds.length,
-                  itemBuilder: (context, subjectIndex) {
-                    final subjectId = sortedSubjectIds[subjectIndex];
-                    final subjectName = _subjectNames[subjectId] ?? 'Unknown';
-                    final subjectQuestions = groupedQuestions[subjectId]!;
+                Expanded(
+                  child: _questions.isEmpty
+                      ? Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.inbox_rounded,
+                                  size: 80, color: AppConstants.textSecondary.withAlpha(80)),
+                              const SizedBox(height: AppConstants.paddingMedium),
+                              const Text(
+                                'No questions yet.',
+                                style: TextStyle(
+                                    color: AppConstants.textSecondary,
+                                    fontSize: AppConstants.fontTitle),
+                              ),
+                            ],
+                          ),
+                        )
+                      : filteredGroupedQuestions.isEmpty
+                          ? const Center(
+                              child: Text(
+                                'No questions match your filter.',
+                                style: TextStyle(
+                                  color: AppConstants.textSecondary,
+                                  fontSize: AppConstants.fontTitle,
+                                ),
+                              ),
+                            )
+                          : ListView.builder(
+                              padding: const EdgeInsets.all(AppConstants.paddingMedium),
+                              itemCount: sortedSubjectIds.length,
+                              itemBuilder: (context, subjectIndex) {
+                                final subjectId = sortedSubjectIds[subjectIndex];
+                                final subjectName = _subjectNames[subjectId] ?? 'Unknown';
+                                final subjectQuestions = filteredGroupedQuestions[subjectId]!;
 
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -153,7 +252,7 @@ class _ManageQuestionsScreenState extends State<ManageQuestionsScreen> {
                             ),
                           ),
                         ),
-                        ...subjectQuestions.asMap().entries.map((entry) {
+                        ...subjectQuestions.map((entry) {
                           final int index = entry.key;
                           final QuestionModel q = entry.value;
 
@@ -172,24 +271,28 @@ class _ManageQuestionsScreenState extends State<ManageQuestionsScreen> {
                                     Row(
                                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                       children: [
-                                        Row(
-                                          children: [
-                                            Container(
-                                              padding: const EdgeInsets.symmetric(
-                                                  horizontal: 10, vertical: 4),
-                                              decoration: BoxDecoration(
-                                                color: AppConstants.primaryColor.withAlpha(20),
-                                                borderRadius: BorderRadius.circular(20),
-                                              ),
-                                              child: Text(
-                                                subjectName,
-                                                style: const TextStyle(
-                                                  fontSize: AppConstants.fontSmall,
-                                                  fontWeight: FontWeight.w600,
-                                                  color: AppConstants.primaryColor,
+                                        Expanded(
+                                          child: Row(
+                                            children: [
+                                              Flexible(
+                                                child: Container(
+                                                  padding: const EdgeInsets.symmetric(
+                                                      horizontal: 10, vertical: 4),
+                                                  decoration: BoxDecoration(
+                                                    color: AppConstants.primaryColor.withAlpha(20),
+                                                    borderRadius: BorderRadius.circular(20),
+                                                  ),
+                                                  child: Text(
+                                                    subjectName,
+                                                    overflow: TextOverflow.ellipsis,
+                                                    style: const TextStyle(
+                                                      fontSize: AppConstants.fontSmall,
+                                                      fontWeight: FontWeight.w600,
+                                                      color: AppConstants.primaryColor,
+                                                    ),
+                                                  ),
                                                 ),
                                               ),
-                                            ),
                                             const SizedBox(width: 6),
                                             // Answer type badge
                                             Container(
@@ -234,6 +337,8 @@ class _ManageQuestionsScreenState extends State<ManageQuestionsScreen> {
                                             ),
                                           ],
                                         ),
+                                        ),
+                                        const SizedBox(width: 8),
                                         Text(
                                           '#${index + 1}',
                                           style: const TextStyle(
@@ -254,16 +359,22 @@ class _ManageQuestionsScreenState extends State<ManageQuestionsScreen> {
                                     ),
                                     const SizedBox(height: 6),
                                     Row(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        const Icon(Icons.check_circle_rounded,
+                                        const Padding(
+                                          padding: EdgeInsets.only(top: 2),
+                                          child: Icon(Icons.check_circle_rounded,
                                             size: 14, color: AppConstants.successColor),
+                                        ),
                                         const SizedBox(width: 4),
-                                        Text(
-                                          q.correctTerm,
-                                          style: const TextStyle(
-                                            fontSize: AppConstants.fontBody,
-                                            fontWeight: FontWeight.bold,
-                                            color: AppConstants.successColor,
+                                        Expanded(
+                                          child: Text(
+                                            q.correctTerm,
+                                            style: const TextStyle(
+                                              fontSize: AppConstants.fontBody,
+                                              fontWeight: FontWeight.bold,
+                                              color: AppConstants.successColor,
+                                            ),
                                           ),
                                         ),
                                       ],
@@ -297,8 +408,11 @@ class _ManageQuestionsScreenState extends State<ManageQuestionsScreen> {
                         }),
                       ],
                     );
-                  },
+                              },
+                            ),
                 ),
+              ],
+            ),
     );
   }
 }
